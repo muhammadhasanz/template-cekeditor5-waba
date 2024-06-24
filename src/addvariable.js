@@ -20,17 +20,16 @@ class AddVariableUI extends Plugin {
     // }
     init() {
         const editor = this.editor;
-
         // this._balloon = this.editor.plugins.get(ContextualBalloon);
         // this.formView = this._createFormView();
 
         editor.ui.componentFactory.add('addvariable', () => {
             const command = editor.commands.get('addvariable');
             const button = new ButtonView();
-            window.variable = 1;
+            // window.variable = 1;
 
             button.set({
-                label: 'Add Varibale',
+                label: 'Add Parameter',
                 tooltip: true,
                 icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path opacity="0.3" d="M3 13V11C3 10.4 3.4 10 4 10H20C20.6 10 21 10.4 21 11V13C21 13.6 20.6 14 20 14H4C3.4 14 3 13.6 3 13Z" fill="currentColor"/><path d="M13 21H11C10.4 21 10 20.6 10 20V4C10 3.4 10.4 3 11 3H13C13.6 3 14 3.4 14 4V20C14 20.6 13.6 21 13 21Z" fill="currentColor"/></svg>',
                 withText: true
@@ -172,9 +171,7 @@ class AddVariableEditing extends Plugin {
                 classes: ['addvariable']
             },
             model: (viewElement, { writer: modelWriter }) => {
-                // Extract the "name" from "{name}".
-                console.log(viewElement.getChild(0).data)
-                const name = viewElement.getChild(0).data.slice(1, -1);
+                const name = viewElement.getChild(0).data.replace(/\{\{(.*?)\}\}/, '$1');
 
                 return modelWriter.createElement('addvariable', { name });
             }
@@ -198,7 +195,6 @@ class AddVariableEditing extends Plugin {
         // Helper method for both downcast converters.
         function createPlaceholderView(modelItem, viewWriter) {
             const name = modelItem.getAttribute('name');
-
             const placeholderView = viewWriter.createContainerElement('span', {
                 class: 'addvariable'
             });
@@ -218,11 +214,24 @@ class AddVariableCommand extends Command {
         const editor = this.editor;
         const selection = editor.model.document.selection;
 
+        let parameter;
+        let content = editor.getData();
+        content = content.match(/\{\{(.*?)\}\}/gm);
+        if (content) {
+            content.forEach((cValue, cIndex) => {
+                content[cIndex] = cValue.replace(/\{\{(.*?)\}\}/gm, "$1")
+            });
+            content = content.sort(((t, e) => t - e));
+            let t = content[content.length - 1]; t = t.replace(/\{\{(.*?)\}\}/gm, "$1")
+            parameter = parseInt(t) + 1
+        } else parameter = 1;
+
+
         editor.model.change(writer => {
             // Create a <placeholder> element with the "name" attribute (and all the selection attributes)...
             const placeholder = writer.createElement('addvariable', {
                 ...Object.fromEntries(selection.getAttributes()),
-                name: variable++
+                name: parameter
             });
 
             editor.model.insertContent(placeholder);
